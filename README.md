@@ -4,4 +4,6 @@ Project with Peter Bigica for MAT 332: Applied Linear Algebra and Machine Learni
 
 We use a multiclass logistic regression algorithm to generate a Markov matrix to describe potential states of an at-bat between an arbitrarily chosen pitcher and hitter in Major League baseball, then compute predicted outcome probabilities and statistics.
 
+To try this out, please use mlbAtBats.py and mlbAtBats.ipynb. baseball.ipynb is the original file used for in-class presentation and will not be updated further.
+
 Python libraries used: numpy, pandas, pybaseball, scikit-learn.

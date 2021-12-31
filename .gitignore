@@ -1,18 +1,2 @@
-allplayers.csv
-analysis.py
-analysis2.ipynb
-baseball_clusters.ipynb
-download.py
-ited.5.1.47.pdf
-lrtest.ipynb
-MAT 332 Abstract.docx
-ms_cluster.py
-PAMIMeanshift.pdf
-pitches_9-22-21.csv
-reference.txt
-sci_python_quickstart.ipynb
-script.r
-short.csv
-test.ipynb
-test.m
-.vscode/settings.json
+__pycache__/
+.vscode/

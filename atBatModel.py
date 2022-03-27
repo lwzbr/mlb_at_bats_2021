@@ -79,7 +79,17 @@ class player:
 
         self.playerID = playerID.iloc[0]
 
-    def getStatcastData(self, playerType = str, dateRange = ["2021-01-01", "2021-10-03"], verbose = False) -> pd.DataFrame:
+    def getStatcastData(self, playerType = str, dateRange = [], verbose = False) -> pd.DataFrame:
+        # By default we will get pitches from games between today and 01/01/(last year)
+        if dateRange == []:
+            from datetime import date
+            today = date.today()
+
+            jan1LastYear = str(today.year - 1) + "-01-01"
+
+            dateRange.append(jan1LastYear)
+            dateRange.append(today.strftime("%Y-%m-%d"))
+
         if playerType.lower() == "batter":
             getSC = pyb.statcast_batter
         else:
@@ -210,7 +220,7 @@ class markovModel:
         stats = pd.Series([self.pitcher.playerName, self.batter.playerName], index = ["Pitcher", "Batter"])
         statsVector = pd.Series(np.round(inVector[12:18], 3), index = ["pWalk", "pHBP", "p1B", "p2B", "pHR", "pOut"])
 
-        stats = stats.append(statsVector)
+        stats = pd.concat([stats, statsVector])
 
         stats["AVG"] = np.round(sum(stats[["p1B", "p2B", "pHR"]]), 3)
 

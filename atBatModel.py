@@ -103,7 +103,7 @@ class player:
 
         self.statcastData = statcastData
 
-        return statcastData
+        #return statcastData
 
 class markovModel:
     def __init__(self, pitcher = player, batter = player) -> None:
@@ -195,7 +195,7 @@ class markovModel:
             outcomeMatrix = countProbabilities(count)
             outcomeMatrix = outcomeMatrix.multiply(outcomeMatrix["Freq"], axis=0).drop("Freq", axis=1)
 
-            outcomes = np.round(outcomeMatrix.sum(), decimals=3)
+            outcomes = outcomeMatrix.sum()
 
             for j in code:
                 vector[j] = sum(outcomes[code.get(j)])

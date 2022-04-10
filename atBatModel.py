@@ -67,17 +67,32 @@ def vectorFromCount(count=(0,0)):
     return vector
 
 class player:
-    def __init__(self, name = list)-> None:
+    def __init__(self, **lookup)-> None:
         pyb.cache.enable()
 
-        self.playerName = (name[0] + " " + name[1]).title()
+        playerID = pd.Series(dtype=object)
 
-        playerID = pyb.playerid_lookup(name[1], name[0])
+        # Maybe we have a key?
+        for key in ("key_mlbam","key_retro","key_bbref","key_fangraphs"):
+            l = lookup.get(key)
 
-        if playerID.shape[0] == 0:
-            raise Exception("No players found by the name " + self.playerName)
+            if not (l == None):
+                playerID = pyb.playerid_reverse_lookup([l], key_type=key[4:])
+        
+        # If we still haven't found anyone, see if a name has been given
+        if not ((lookup.get("name_first")) == None or (lookup.get("name_last") == None)) and (playerID.shape[0] == 0):
+            playerID = pyb.playerid_lookup(first = lookup.get("name_first"), last = lookup.get("name_last"))
+
+        if (playerID.shape[0] == 0):
+            # PlayerID still empty, throw exception
+
+            raise AssertionError(str("Failed to find player with these inputs or insufficient information given:\n" + str(lookup)))
+        elif (playerID.shape[0] > 1):
+            # Found several players, warn that we will be using the first one
+            print("Warning: Found", playerID.shape[0], "players with input\n", str(lookup), "\nDefaulting to the first player!")
 
         self.playerID = playerID.iloc[0]
+        self.playerName = (self.playerID["name_first"] + " " + self.playerID["name_last"]).title()
 
     def getStatcastData(self, playerType = str, dateRange = [], verbose = False) -> pd.DataFrame:
         # By default we will get pitches from games between today and 01/01/(last year)
@@ -103,7 +118,7 @@ class player:
 
         self.statcastData = statcastData
 
-        #return statcastData
+        return statcastData
 
 class markovModel:
     def __init__(self, pitcher = player, batter = player) -> None:
@@ -111,13 +126,33 @@ class markovModel:
 
         self.modelData = dict()
 
-        for x in ["batter", "pitcher"]:
-            try:
-                data =  eval(x + ".statcastData")
-            except AttributeError:
-                data = eval(x + ".getStatcastData(playerType=" + x + ")")
+        try:
+            data = batter.statcastData
+        except AttributeError:
+            data = batter.getStatcastData(playerType="batter")
+        finally:
+            self.modelData["batter"] = processData(data)
+
+        try:
+            data = pitcher.statcastData
+        except AttributeError:
+            data = pitcher.getStatcastData(playerType="pitcher")
+        finally:
+            self.modelData["pitcher"] = processData(data)
+
+        # try:
+        #     data = batter.statcastData
+        # except AttributeError:
+        #     data = batter.getStatcastData(playerType="batter")
+
+        # for x in ["batter", "pitcher"]:
+        #     try:
+        #         data =  eval(x + ".statcastData")
+        #     except AttributeError:
+        #         print(type(x))
+        #         data = eval(x + ".getStatcastData(playerType=" + x + ")")
             
-            self.modelData[x] = processData(data)
+        #     self.modelData[x] = processData(data)
 
         self.pitcher = pitcher
         self.batter = batter
@@ -217,21 +252,38 @@ class markovModel:
         except AttributeError:
             inVector = self.simulatePitches()
         
-        stats = pd.Series([self.pitcher.playerName, self.batter.playerName], index = ["Pitcher", "Batter"])
-        statsVector = pd.Series(np.round(inVector[12:18], 3), index = ["pWalk", "pHBP", "p1B", "p2B", "pHR", "pOut"])
+        # stats = pd.Series(
+        #     [
+        #         self.pitcher.playerName, 
+        #         self.batter.playerName], 
+        #     index = [
+        #         "pitcher_name", "batter_name"
+        #     ]
+        # )
+        stats = pd.Series(
+            {
+                # "pitcher": self.pitcher,
+                # "batter": self.batter
+                # "pitcher_key_mlbam": self.pitcher.playerID["key_mlbam"],
+                # "batter_key_mlbam": self.batter.playerID["key_mlbam"],
+                "pitcher_name": self.pitcher.playerName,
+                "batter_name": self.batter.playerName
+            }            
+        )
+        statsVector = pd.Series(np.round(inVector[12:18], 3), index = ["x_pBB", "x_pHBP", "x_p1B", "x_p2B", "x_pHR", "x_pOut"])
 
         stats = pd.concat([stats, statsVector])
 
-        stats["AVG"] = np.round(sum(stats[["p1B", "p2B", "pHR"]]), 3)
+        stats["x_AVG"] = np.round(sum(stats[["x_p1B", "x_p2B", "x_pHR"]]), 3)
 
-        stats["OBP"] = np.round((1 - statsVector["pOut"]), 3)
+        stats["x_OBP"] = np.round((1 - statsVector["x_pOut"]), 3)
 
-        stats["SLG"] = np.round(stats["p1B"] + 2*stats["p2B"] + 4*stats["pHR"], 3)
+        stats["x_SLG"] = np.round(stats["x_p1B"] + 2*stats["x_p2B"] + 4*stats["x_pHR"], 3)
         
-        stats["OPS"] = np.round(sum(stats[["OBP", "SLG"]]), 3)
+        stats["x_OPS"] = np.round(sum(stats[["x_OBP", "x_SLG"]]), 3)
 
         wOBAWeights = np.array([0.69, 0.72, 0.89, 1.27, 2.1])
-        stats["wOBA"] = np.round(np.dot(wOBAWeights, inVector[12:17]), 3)
+        stats["x_wOBA"] = np.round(np.dot(wOBAWeights, inVector[12:17]), 3)
 
         return stats.transpose()
 

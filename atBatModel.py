@@ -184,7 +184,7 @@ class markovModel:
             countData = getCountData(self.modelData["pitcher"], count)
 
             # We select the mean parameters for every pitch type
-            pitchStats = countData.groupby("pitch_type").mean()
+            pitchStats = countData.groupby("pitch_type")[dataFeatures].mean()
             pitchStats = pitchStats[dataFeatures]
 
             pitchStats["Freq"] = countData["pitch_type"].value_counts()
